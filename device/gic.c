@@ -4,7 +4,9 @@
 #include "arm.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "proc.h"
 
+extern struct proc *proc;
 
 static volatile uint* gic_base;
 
@@ -243,8 +245,37 @@ void pic_dispatch (struct trapframe *tp)
 	int intid, intn;
 	intid = gic_getack(); /* iack */
 	intn = intid - 32;
-	/* TODO: int disable here? **/
+	
 	isrs[intn](tp, intn);
 	gic_eoi(intn);
+
+  // Force process exit if it has been killed and is in user space.
+  // (If it is still executing in the kernel, let it keep running
+  // until it gets to the regular system call return.)
+  //
+  // on xv6 x86
+  //if(proc && proc->killed && (tf->cs&3) == DPL_USER)
+  // 
+  // on arm: (r14_svc == pc if SWI) 
+  // - the proc in swi is in kernel space
+  // - the proc not in swi is in user space
+  // so: we need to compare tp->r14_svc with tp->pc
+  // they need to be diferent to proc be in user space
+  
+  if(proc && proc->killed && (tp->r14_svc) != (tp->pc)) {
+    exit();
+  }
+
+  // Force process to give up CPU on clock tick.
+  // If interrupts were on while locks held, would need to check nlock.
+  if(proc && proc->state == RUNNING && intn == PIC_TIMER01) {
+    yield();
+  }
+  
+  // Check if the process has been killed since we yielded
+  if(proc && proc->killed && (tp->r14_svc) != (tp->pc)) {
+    exit();
+  }
+
 }
 

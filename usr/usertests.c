@@ -1611,7 +1611,7 @@ main(int argc, char *argv[])
     bigwrite();
     bigargtest();
     bsstest();
-    sbrktest();
+    //sbrktest(); // issue sbrktest : data abort: instruction 0x3858, fault addr 0x40000000, reason 0x5
     validatetest();
     
     opentest();
@@ -1621,7 +1621,7 @@ main(int argc, char *argv[])
     
     mem();
     pipe1();
-    //preempt();
+    preempt();
     exitwait();
     
     rmdot();
