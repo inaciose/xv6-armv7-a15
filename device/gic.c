@@ -261,10 +261,11 @@ void pic_dispatch (struct trapframe *tp)
   // - the proc not in swi is in user space
   // so: we need to compare tp->r14_svc with tp->pc
   // they need to be diferent to proc be in user space
-  
+  /*
   if(proc && proc->killed && (tp->r14_svc) != (tp->pc)) {
     exit();
   }
+  */
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
@@ -276,6 +277,6 @@ void pic_dispatch (struct trapframe *tp)
   if(proc && proc->killed && (tp->r14_svc) != (tp->pc)) {
     exit();
   }
-
+  
 }
 

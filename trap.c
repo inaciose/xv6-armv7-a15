@@ -39,24 +39,65 @@ void und_handler (struct trapframe *r)
     cprintf ("und at: 0x%x \n", r->pc);
 }
 
+void sleepwrap(void* wproc);
+
 // trap routine
 void dabort_handler (struct trapframe *r)
 {
+    /*
+    // xv6 x86 code
+    if(myproc() == 0 || (tf->cs&3) == 0){
+      // In kernel, it must be our mistake.
+      panic("trap");
+    }
+    // In user space, assume process misbehaved.
+    myproc()->killed = 1;
+    */
+    
+    // on arm: (r14_svc == pc if SWI) 
+    // - the proc in swi is in kernel space
+    // - the proc not in swi is in user space
+    // so: we need to compare tp->r14_svc with tp->pc
+    // they need to be diferent to proc be in user space
+    
     uint dfs, fa;
     extern void show_callstk (char *s);
-    cli();
 
-    // read data fault status register
+    if(proc == 0 && (r->r14_svc) == (r->pc)) {
+      // In kernel, it must be our mistake.
+      // put second part of original code
+      cli();
+
+      // read data fault status register
+      asm("MRC p15, 0, %[r], c5, c0, 0": [r]"=r" (dfs)::);
+
+      // read the fault address register
+      asm("MRC p15, 0, %[r], c6, c0, 0": [r]"=r" (fa)::);
+      
+      cprintf ("data abort: instruction 0x%x, fault addr 0x%x, reason 0x%x \n",
+               r->pc, fa, dfs);
+      
+      dump_trapframe (r);
+      show_callstk("Stack dump for data exception.");
+    }
+    
+    // In user space, assume process misbehaved.
+    
+    // get data to show on msg
+    // read data fault status register 
     asm("MRC p15, 0, %[r], c5, c0, 0": [r]"=r" (dfs)::);
-
     // read the fault address register
     asm("MRC p15, 0, %[r], c6, c0, 0": [r]"=r" (fa)::);
+
+    cprintf ("data abort: pid %d %s instruction 0x%x, fault addr 0x%x, reason 0x%x \n",
+             proc->pid, proc->name, r->pc, fa, dfs);
     
-    cprintf ("data abort: instruction 0x%x, fault addr 0x%x, reason 0x%x \n",
-             r->pc, fa, dfs);
+    // kill the misbeaved process
+    proc->killed = 1;
     
-    dump_trapframe (r);
-    show_callstk("Stack dump for data exception.");
+    // workaround to avoid crash (this kill the process and its parent?)
+    // it seems to raise the 'zombie!' message on userinit.
+    exit();
 }
 
 // trap routine

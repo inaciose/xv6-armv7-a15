@@ -1606,12 +1606,16 @@ main(int argc, char *argv[])
         exit();
     }
     close(open("usertests.ran", O_CREATE));
-    
+
     bigargtest();
     bigwrite();
     bigargtest();
     bsstest();
-    //sbrktest(); // issue sbrktest : data abort: instruction 0x3858, fault addr 0x40000000, reason 0x5
+    //sbrktest(); // moved to the end
+    // issue sbrktest : data abort: instruction 0x3858, fault addr 0x40000000, reason 0x5
+    // partialy resolved, the workaround to avoid crash kill the process and its parent?
+    // in xv6 x86 sbrktest it only kill the child, so an issue still exist 
+    
     validatetest();
     
     opentest();
@@ -1640,7 +1644,9 @@ main(int argc, char *argv[])
     forktest();
     bigdir(); // slow
     
+    sbrktest(); // moved to the end, workaround read above why
+
     exectest();
-    
+
     exit();
 }
